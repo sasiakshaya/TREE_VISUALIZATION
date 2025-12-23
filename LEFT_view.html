@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Left View of Binary Tree</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  min-height:120vh;
+  font-family:'Space Grotesk',sans-serif;
+  background:
+    radial-gradient(circle at 15% 20%, #ff00cc, transparent 40%),
+    radial-gradient(circle at 85% 25%, #00e5ff, transparent 45%),
+    radial-gradient(circle at 50% 80%, #7cff00, transparent 45%),
+    linear-gradient(135deg, #050505, #0b0f2b, #020617);
+  background-size:200% 200%;
+  animation:bgMove 18s ease infinite;
+  color:white;
+  overflow-x:hidden;
+}
+
+@keyframes bgMove{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+h1{
+  text-align:center;
+  font-family:'Orbitron',sans-serif;
+  font-size:38px;
+  margin:20px 0 6px;
+  letter-spacing:2px;
+  color:#e0faff;
+  text-shadow:0 0 25px rgba(0,255,255,.6);
+}
+
+#status{
+  text-align:center;
+  font-size:18px;
+  margin-bottom:10px;
+  color:#9dff00;
+  font-weight:600;
+  min-height:24px;
+}
+
+.controls{
+  text-align:center;
+  margin-bottom:10px;
+}
+.controls input,
+.controls button{
+  padding:10px 14px;
+  margin:5px;
+  font-size:15px;
+  border:none;
+  border-radius:8px;
+}
+.controls input{ width:120px; }
+.controls button{
+  cursor:pointer;
+  background:linear-gradient(135deg,#00f2ff,#0066ff);
+  color:#000;
+  font-weight:600;
+}
+.controls .delete{
+  background:linear-gradient(135deg,#ff416c,#ff0033);
+  color:#fff;
+}
+.controls .leftbtn{
+  background:linear-gradient(135deg,#7cff00,#00ff9d);
+}
+
+svg{
+  width:100%;
+  height:900px;
+}
+
+.node{
+  fill:url(#nodeGrad);
+  stroke:#9ffcff;
+  stroke-width:2;
+  filter:
+    drop-shadow(0 8px 15px rgba(0,0,0,.8))
+    drop-shadow(0 0 15px rgba(0,255,255,.7));
+}
+
+.node-text{
+  fill:white;
+  font-size:16px;
+  font-weight:600;
+  text-anchor:middle;
+  pointer-events:none;
+}
+
+.line{
+  stroke:rgba(255,255,255,.6);
+  stroke-width:2;
+}
+
+.left-view{
+  fill:#9dff00 !important;
+  stroke:#eaff8f;
+  stroke-width:3;
+}
+</style>
+</head>
+
+<body>
+
+<h1>LEFT VIEW OF BINARY TREE</h1>
+<div id="status"></div>
+
+<div class="controls">
+  <input type="number" id="value" placeholder="Enter value">
+  <button onclick="insertNode()">Insert</button>
+  <button class="delete" onclick="deleteNode()">Delete</button>
+  <button class="leftbtn" onclick="showLeftView()">Left View</button>
+</div>
+
+<svg id="canvas">
+<defs>
+  <radialGradient id="nodeGrad" cx="25%" cy="25%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="55%" stop-color="#3bdcff"/>
+    <stop offset="100%" stop-color="#04121f"/>
+  </radialGradient>
+</defs>
+</svg>
+
+<script>
+class Node{
+  constructor(val){
+    this.val = val;
+    this.left = this.right = null;
+    this.x = this.y = 0;
+  }
+}
+
+let root = null;   // ✅ EMPTY TREE
+const levelGap = 90;
+
+function setStatus(msg){
+  document.getElementById("status").innerText = msg;
+}
+
+/* INSERT */
+function insertNode(){
+  const v = Number(value.value);
+  if(isNaN(v)) return;
+
+  root = insert(root, v);
+  draw();
+  setStatus("Node is inserted");
+}
+
+function insert(n, v){
+  if(!n) return new Node(v);
+  if(v < n.val) n.left = insert(n.left, v);
+  else if(v > n.val) n.right = insert(n.right, v);
+  return n;
+}
+
+/* DELETE */
+function deleteNode(){
+  const v = Number(value.value);
+  if(isNaN(v)) return;
+
+  root = remove(root, v);
+  draw();
+  setStatus("Node is deleted");
+}
+
+function remove(n, v){
+  if(!n) return null;
+  if(v < n.val) n.left = remove(n.left, v);
+  else if(v > n.val) n.right = remove(n.right, v);
+  else{
+    if(!n.left) return n.right;
+    if(!n.right) return n.left;
+    let s = n.right;
+    while(s.left) s = s.left;
+    n.val = s.val;
+    n.right = remove(n.right, s.val);
+  }
+  return n;
+}
+
+/* DRAW */
+function layout(n, d, x1, x2){
+  if(!n) return;
+  n.x = (x1 + x2) / 2;
+  n.y = d * levelGap + 80;
+  layout(n.left, d+1, x1, n.x);
+  layout(n.right, d+1, n.x, x2);
+}
+
+function draw(){
+  const svg = document.getElementById("canvas");
+  svg.querySelectorAll(".node,.line,text").forEach(e=>e.remove());
+  if(!root) return;
+
+  layout(root, 0, 100, window.innerWidth - 100);
+  drawEdges(svg, root);
+  drawNodes(svg, root);
+}
+
+function drawEdges(svg, n){
+  if(!n) return;
+  if(n.left) connect(svg, n, n.left);
+  if(n.right) connect(svg, n, n.right);
+  drawEdges(svg, n.left);
+  drawEdges(svg, n.right);
+}
+
+function connect(svg, a, b){
+  const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+  l.setAttribute("x1", a.x);
+  l.setAttribute("y1", a.y);
+  l.setAttribute("x2", b.x);
+  l.setAttribute("y2", b.y);
+  l.setAttribute("class", "line");
+  svg.appendChild(l);
+}
+
+function drawNodes(svg, n){
+  if(!n) return;
+
+  const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx", n.x);
+  c.setAttribute("cy", n.y);
+  c.setAttribute("r", 26);
+  c.setAttribute("class", "node");
+  c.dataset.val = n.val;
+
+  const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("x", n.x);
+  t.setAttribute("y", n.y + 6);
+  t.setAttribute("class", "node-text");
+  t.textContent = n.val;
+
+  svg.appendChild(c);
+  svg.appendChild(t);
+
+  drawNodes(svg, n.left);
+  drawNodes(svg, n.right);
+}
+
+/* LEFT VIEW – ONLY WHEN ASKED */
+function showLeftView(){
+  if(!root) return;
+
+  document.querySelectorAll(".node").forEach(n =>
+    n.classList.remove("left-view")
+  );
+
+  setStatus("Left View of Binary Tree");
+
+  const q = [root];
+  let delay = 0;
+
+  while(q.length){
+    const size = q.length;
+    let first = null;
+
+    for(let i=0;i<size;i++){
+      const n = q.shift();
+      if(i === 0) first = n;
+      if(n.left) q.push(n.left);
+      if(n.right) q.push(n.right);
+    }
+
+    const el = document.querySelector(`.node[data-val='${first.val}']`);
+    if(el){
+      setTimeout(()=>el.classList.add("left-view"), delay);
+      delay += 600;
+    }
+  }
+}
+</script>
+
+</body>
+</html>
+
